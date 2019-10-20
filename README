@@ -1,0 +1,4 @@
+The code and resultant image when analyzing the RNASeq data by either aligning the reads to the human or 
+species-specific genome. The plot shows the percent of reads that were mapped/aligned when using one genome 
+versus the other as a reference and also the percent of reads assigned to a feature when using one genome versus 
+the other. 
