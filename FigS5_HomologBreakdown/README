@@ -1,0 +1,4 @@
+For each of the non-human primate (NHP)species of interest, identifying via ENSEMBL's BioMart the type of ortholog 
+relationship a given gene has with human. First, an ortholog "database" was made for the species of interest and this 
+was then subsequently used to make plots showing the number of genes in a NHP species that was a one2one ortholog or 
+one2many ortholog, etc. compared to human. 
