@@ -1,0 +1,4 @@
+The PCA plots for the mouse RNASeq reads after undergoing the rlog transformation in DESeq2. One plot shows a PCA plot
+when examining all of the reads; the second plot is of a list of reads minimized to those also found in the InnateDB 
+database (https://www.innatedb.com/). The Rmarkdown file stored in this folder contains the code for analyzing the mouse
+RNASeq reads as well as the non-human primate species, so this same file is stored in other folders as well.  
