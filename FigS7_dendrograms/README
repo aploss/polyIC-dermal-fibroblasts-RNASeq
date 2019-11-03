@@ -1,0 +1,6 @@
+This folder contains the code for generating the dendrograms made to visualize the hierarchical clustering of the samples  
+shown in Fig S7 of the manuscript. RNA-Seq reads were aligned to either the human or the NHP-speciifc genome. 
+The read counts were limited to those that have a one-to-one human ortholog across all species prior to undergoing the rlog 
+function in DESeq2. After this was done, the subsequent output was limited to genes contained in the InnateDB list (and that 
+consequently also fell on the one-to-one human ortholog list across all species). The samples, after these limitations, were 
+then visualized as dendrograms to see how they compared to one another. 
