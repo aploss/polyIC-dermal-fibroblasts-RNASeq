@@ -1,0 +1,5 @@
+The code and output for the pseudoviolin plots shown in Fig S8. Since genes were limited on a species-by-species basis for 
+those that had a one-to-one human ortholog, each species had a differing list of genes that the counts were limited to prior
+to performing DESEq2. To see the differences between a given NHP species' response to poly(I:C) relative to mock VERSUS that 
+of human poly(I:C)-treated cells relative to mock, each NHP species had a corresponding human DGE profile whereby the human 
+read counts were limited to the same list of genes that a given NHP species was. Hence, why there is a "human related" DGE profile for each of the NHP species! 
