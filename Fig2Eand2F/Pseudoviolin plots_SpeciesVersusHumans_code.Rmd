@@ -1,0 +1,127 @@
+---
+title: "Pseudoviolin plots_NHPsVersusHuman"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+require(knitr)
+```
+
+## Purpose
+
+The counts from mapping to either the human or the species-specific genome were limited on a species-by-species 
+basis to the ENSEMBL IDs that had a one-to-one human ortholog (referenced as “species orthologs” in the main text).
+The counts of these genes were then processed in DESeq2 to determine differential gene expression (DGE), 
+specifically comparing the DGE profile of each NHP species (poly(I:C)-transfected versus mock-transfected) to that 
+of human. Thus, genes from NHP species that significantly differed from human in their response to poly(I:C) could 
+be determined and are shown here as pseudoviolin plots from either the human genome (Fig 2E) or the 
+species-specific genome (Fig 2F) mapping method. 
+
+```{r pkgs, message=FALSE, warning=FALSE}
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(reshape2)
+library(plyr)
+```
+
+Upload differential gene expression files 
+```{r files}
+HumanMapped_DGE <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_HumanMapped"
+sampleFiles_HumanMapped <- list.files(basename(Sys.glob(file.path(HumanMapped_DGE))), 
+                  pattern = "treatmenttreated vs_human.*.txt")
+                                           
+sampleNames_HumanMapped <- sub('.treatmenttreated vs_human_dds1.*', '', sampleFiles_HumanMapped) %>%
+  sub('\\d+-\\d+-\\d+\\s', '', .) %>%
+  sub("HumanMapped.*", "", .) %>%
+  sub('species', '', .)
+length(sampleFiles_HumanMapped)
+
+SpeciesMapped_DGE <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_SpeciesMapped"
+sampleFiles_SpeciesMapped <- list.files(basename(Sys.glob(file.path(SpeciesMapped_DGE))), 
+                  pattern = "treatmenttreated vs_human.*.txt")
+                                           
+sampleNames_SpeciesMapped <- sub('.treatmenttreated vs_human_dds1.*', '', sampleFiles_SpeciesMapped) %>%
+  sub('\\d+-\\d+-\\d+\\s', '', .) %>%
+  sub("SpeciesMapped.*", "", .) %>%
+  sub('species', '', .)
+length(sampleFiles_SpeciesMapped)
+
+output_dir <- "Pseudoviolin plots output"
+```
+
+Organize the data and select only genes that have an ENTREZ ID (since this is one of the requirements for 
+performing the pathway analysis) AND a padj <= 0.05 to use for generating the pseudoviolin plots. 
+```{r pseudoviolin data}
+data_pseudoviolins <- function(files) {     
+  d <- read.delim(files)
+  dd <-dplyr::select(d, log2FoldChange, padj) %>%
+    na.omit() %>%
+    dplyr::filter(padj <= 0.05) %>%
+    dplyr::select(log2FoldChange) 
+}
+
+Human_DGEs <- llply(file.path(HumanMapped_DGE, sampleFiles_HumanMapped), data_pseudoviolins)
+names(Human_DGEs)  <- sampleNames_HumanMapped
+
+Species_DGEs <- llply(file.path(SpeciesMapped_DGE, sampleFiles_SpeciesMapped), data_pseudoviolins)
+names(Species_DGEs) <- sampleNames_SpeciesMapped
+
+Human_DGEs.m <- melt(Human_DGEs)
+Species_DGEs.m <- melt(Species_DGEs)
+
+Human_DGEs.m$L1 <- factor(Human_DGEs.m$L1, 
+                                levels = c("chimpanzee", "bonobo", "gorilla", 
+                                           "orangutan", "olive_baboon", "rhesus_macaque", 
+                                           "pigtailed_macaque", "squirrel_monkey"))
+
+Species_DGEs.m$L1 <- factor(Species_DGEs.m$L1, 
+                                levels = c("chimpanzee", "bonobo", "gorilla", 
+                                           "orangutan", "olive_baboon", "rhesus_macaque", 
+                                           "pigtailed_macaque", "squirrel_monkey"))
+
+
+```
+
+Plotting the human and NHP plots
+```{r plotting}
+
+##Species genome-mapped DGEs
+species_plot <- ggplot(Species_DGEs.m, aes(x = L1, y = value, fill= L1, color=L1)) + geom_point()
+species_total_plot <- species_plot + geom_dotplot(binwidth=0.1, binaxis = "y", stackdir="center", dotsize = 0.20) +
+  xlab("") + ylab ("log2(fold change)") + 
+  scale_y_continuous(breaks = seq(-12, 12, 6), limits = c(-12, 12)) +
+  theme(panel.background = element_rect(fill = "white"), 
+        panel.grid.major = element_line(colour = "black")) +
+  theme(axis.ticks.x=element_blank(), axis.text.x = element_blank(), 
+        axis.text.y = element_text(size = rel(2)), axis.title.y = element_text(size = rel(2)),
+        legend.position = "none") + 
+  scale_color_manual(values= c("#00659c", "#0088ce", "#7dc3e8", "#bee1f4", "darkgreen", "forestgreen", 
+                               "darkolivegreen3", "purple")) +
+  scale_fill_manual(values= c("#00659c", "#0088ce", "#7dc3e8", "#bee1f4", "darkgreen", "forestgreen", 
+                               "darkolivegreen3", "purple")) 
+ggsave(filename = file.path(output_dir, paste(Sys.Date(), "SpeciesMappedDGEs_VersusHuman_pseudoviolin.pdf")),
+       plot = species_total_plot, width = 15, height = 6, device = "pdf")
+
+##Human genome mapped
+human_plot <- ggplot(Human_DGEs.m, aes(x = L1, y = value, fill= L1, color=L1)) + geom_point()
+human_total_plot <- human_plot + geom_dotplot(binwidth=0.1, binaxis = "y", stackdir="center", dotsize = 0.20) + 
+  xlab("") + ylab ("log2(fold change)") + 
+  scale_y_continuous(breaks = seq(-12, 12, 6), limits = c(-12, 12)) +
+  theme(panel.background = element_rect(fill = "white"), 
+        panel.grid.major = element_line(colour = "black")) +
+  theme(axis.ticks.x=element_blank(), axis.text.x = element_blank(), 
+        axis.text.y = element_text(size = rel(2)), axis.title.y = element_text(size = rel(2)),
+        legend.position = "none") + 
+  scale_color_manual(values= c("#00659c", "#0088ce", "#7dc3e8", "#bee1f4", "darkgreen", "forestgreen", 
+                               "darkolivegreen3", "purple")) +
+  scale_fill_manual(values= c("#00659c", "#0088ce", "#7dc3e8", "#bee1f4", "darkgreen", "forestgreen", 
+                               "darkolivegreen3", "purple")) 
+ggsave(filename = file.path(output_dir, paste(Sys.Date(), "HumanMappedDGEs_VersusHuman_pseudoviolin.pdf")),
+       plot = human_total_plot, width = 15, height = 6, device = "pdf")
+
+```
+
+```{r session info}
+sessionInfo()
+```
