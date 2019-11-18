@@ -1,0 +1,14 @@
+Comparing the top 500 most significantly differentially expressed genes between the two mapping methods. In the left column 
+are the top 500 most significantly (based off padj value) differentially expressed genes found after using the species-
+specific genome for mapping, with the genes arranged by increasing log2(FoldChange) for the species mapping method (shown in 
+purple). The corresponding log2(FoldChange) for the same genes after using the human genome as the mapping reference are shown 
+in green. The right column shows the inverse, with the coloring maintained, where the top 500 most significantly 
+differentially expressed genes after mapping to the human genome are shown by increasing log2(FoldChange). Each row is a 
+different species and the Spearman coefficient of the log2(FoldChange) values (after omitting any missing values of which 
+there were no more than five) in each plot is shown. 
+Data information: Genes are labeled with their gene symbol if any of the following criteria were met: (i) the ratio of the 
+log2(FoldChange) from each method for a given gene was less than 0.67 or greater than 1.5 AND the absolute value of the 
+log2(FoldChange) by at least one of the mapping methods was > 2; (ii) the log2(FoldChange) was determined as “NA” by the 
+mapping method not used to create the list of 500 most significant genes; (iii) the padj value was missing or non-significant. 
+For genes in the final category, the point and label are shown enlarged. Where no gene symbol was listed, the human ENSEMBL ID 
+was used.
