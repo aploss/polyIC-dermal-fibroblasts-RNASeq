@@ -1,0 +1,277 @@
+---
+title: "Comparing the most differentially expressed genes when using human or species-specific genome"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load required libraries
+```{r required libraries}
+library(plyr)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(biomaRt)
+library(ggrepel)
+library(gplots)
+library(ggplot2)
+library(RColorBrewer)
+library(stringr)
+library(viridis)
+library(devtools)
+library(data.table)
+library(purrr)
+library(gtools)
+library(DESeq2)
+library(directlabels)
+
+```
+
+##Purpose
+Comparing the top 500 most significantly differentially expressed genes between the two mapping methods
+
+Loading in the DGE profiles
+```{r subsetting}
+
+HumanMapped_DGE <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_HumanMapped"
+sampleFiles_HumanMapped <- list.files(basename(Sys.glob(file.path(HumanMapped_DGE))), 
+                  pattern = "treated dds1 HumanMapped_DGE_results.txt|*related.*.txt")
+                                           
+sampleNames_HumanMapped <- sub('_treated_v_mock|.treatmenttreated.*', '', sampleFiles_HumanMapped) %>%
+  sub('\\d+-\\d+-\\d+\\s', '', .) %>%
+  sub("HumanMapped.*", "", .) %>%
+  sub('species', '', .)
+length(sampleFiles_HumanMapped)
+
+SpeciesMapped_DGE <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_SpeciesMapped"
+
+sampleFiles_SpeciesMapped <- list.files(basename(Sys.glob(file.path(SpeciesMapped_DGE))), 
+                  pattern = "*treated dds1 DGE_results.txt|*related.*.txt")
+                                           
+sampleNames_SpeciesMapped <- sub('_treated_v_mock|.treatmenttreated.*', '', sampleFiles_SpeciesMapped) %>%
+  sub('\\d+-\\d+-\\d+\\s', '', .) %>%
+  sub("SpeciesMapped.*", "", .) %>%
+  sub('species', '', .)
+length(sampleFiles_SpeciesMapped)
+
+
+exptcounts <- function(files) {     
+  d <- read.delim(files)
+  d
+}
+
+human_DGEs_read <-llply(file.path(HumanMapped_DGE, sampleFiles_HumanMapped), exptcounts) 
+names(human_DGEs_read) <- sampleNames_HumanMapped
+
+species_DGEs_read <-llply(file.path(SpeciesMapped_DGE, sampleFiles_SpeciesMapped), exptcounts) 
+names(species_DGEs_read) <- sampleNames_SpeciesMapped
+
+```
+
+Getting the top 500 DGEs for each mapping method
+```{r slimming down}
+
+output_dir <- "ReferenceGenomes_TopHit_Comparison_Output"
+##First focus on the NHP DGEs for both mapping approaches. We don't need to include the 
+##"human-related" samples for the time being. 
+human_mapped <- human_DGEs_read[!grepl("^human_related", names(human_DGEs_read))] %>%
+  llply(., function(x) {
+    colnames(x) <- c("X", paste(colnames(x[-1]), "human_ref", sep = "_"))
+    x}) %>%
+  llply(., function(x) {
+    b <- dplyr::select(x,  matches('X|log2FoldChange|padj|SYMBOL'))
+    b
+  })
+  
+species_mapped <- species_DGEs_read[!grepl("^human_related", names(species_DGEs_read))] %>%
+  llply(., function(x) {
+    colnames(x) <- c("X", paste(colnames(x[-1]), "species_ref", sep = "_"))
+    x}) %>%
+  llply(., function(x) {
+    b <- dplyr::select(x,  matches('X|log2FoldChange|padj|SYMBOL'))
+    b
+  })
+
+##Pulling out top 500 most significant genes
+top_sig <- function(input) {     
+  e <- arrange_at(input, vars(contains('padj')))
+  e[1:500,]
+}
+
+human_mapped_sig <- llply(human_mapped, top_sig) 
+species_mapped_sig <- llply(species_mapped, top_sig)
+
+##What is in common between the two results for each species
+human_species_mapped_common <- mapply(function(x, y) inner_join(x, y, by = "X"), x = human_mapped_sig,
+            y = species_mapped_sig, SIMPLIFY = FALSE)
+
+##Function to mark genes as "different" or not between the two mapping methods if the ratio of the
+##log2FoldChange is > 1.5 or < 0.67 and then also making a condition that the log2FoldChange needs to have
+##an absolute value of greater than or equal to two. Additional column made to mark genes as significant
+##or not, as well.
+pinpointer <- function(x) {
+x$differs <- ifelse(
+  (((x$log2FoldChange_species_ref/x$log2FoldChange_human_ref) < 0.67) |
+  ((x$log2FoldChange_species_ref/x$log2FoldChange_human_ref) > 1.5) &
+  (abs(x$log2FoldChange_species_ref) >= 2 | abs(x$log2FoldChange_human_ref >= 2)) |
+  is.na(x$log2FoldChange_species_ref) | is.na(x$log2FoldChange_human_ref)), "different", "not")
+
+x$significance <- 
+  ifelse((x$padj_species_ref > 0.05 | x$padj_human_ref > 0.05 | is.na(x$padj_human_ref) | is.na(x$padj_species_ref)),
+         "nonsig", "sig")
+x$SYMBOL <-
+  ifelse(is.na(x$SYMBOL_species_ref) | is.na(x$SYMBOL_human_ref), as.character(x$X), as.character(x$SYMBOL_species_ref))
+x
+}
+
+##For the top 500 significant genes after mapping to human, now looking at the log2FC and padj values in the results from 
+##mapping to species-specific genomes. 
+human_sig_in_species <- mapply(function(x, y) inner_join(x, y, by = "X"), x = human_mapped_sig,
+            y = species_mapped, SIMPLIFY = FALSE) %>%
+  llply(., function(x) dplyr::select(x, matches('X|log2FoldChange|padj|SYMBOL'))) %>%
+  llply(., pinpointer)
+
+species_sig_in_human <- mapply(function(x, y) inner_join(x, y, by = "X"), x = species_mapped_sig,
+            y = human_mapped, SIMPLIFY = FALSE) %>%
+  llply(., function(x) dplyr::select(x, matches('X|log2FoldChange|padj|SYMBOL'))) %>%
+  llply(., pinpointer)
+
+##Making tables of the data
+for (i in 1:8) {
+a <- human_sig_in_species[[i]]
+c <- names(human_sig_in_species[i]) 
+
+write.csv(a, file.path(output_dir, paste(Sys.Date(), c,
+            "HumanTop500Sig_ExpressionInSpecies.csv")))
+  
+}
+for (i in 1:8) {
+a <- species_sig_in_human[[i]]
+c <- names(species_sig_in_human[i]) 
+
+write.csv(a, file.path(output_dir, paste(Sys.Date(), c,
+            "SpeciesTop500Sig_ExpressionInHuman.csv")))
+  
+}
+
+##Now plotting the data and labeling points as stipulated if the gene's differential expression is considered
+##different between the two mapping methods by the stipulations we made above.
+for(i in 1:8) {
+  a <- human_sig_in_species[[i]]
+  a$X <- factor(a$X, 
+     levels = a$X[order(a$log2FoldChange_human_ref)])
+  a_subset <- dplyr::select(a, X, log2FoldChange_human_ref, SYMBOL, differs, significance, log2FoldChange_species_ref)
+  a.m <- melt(a_subset)
+  c <- names(human_sig_in_species[i]) 
+  ggplot(a.m, aes(x=X, y=value, color=variable, label = SYMBOL, size = significance)) + 
+    geom_point(alpha = 0.5) +
+    scale_size_manual(values = c(5, 3)) + 
+  geom_text_repel(data = filter(a.m, differs == "different" | significance == "nonsig") %>%
+                 filter(., variable == "log2FoldChange_human_ref"),
+            aes(label = as.character(SYMBOL)), show.legend = FALSE,
+            force = 1, min.segment.length = 0,
+            vjust = 1, direction ='y', nudge_y=1.5, segment.size = 0.25, color = "gray42") +
+ geom_segment(data = filter(a.m, differs == "different" | significance == "nonsig") %>%
+                  filter(., variable == "log2FoldChange_human_ref"),
+                 aes(x=X, xend=X, y=-5, yend=value), size = 0.25, colour = "gray42") +
+    labs(x = "Transcript", y = "log2FoldChange", title = c) +
+ scale_color_manual(name = "Reference Genome", 
+                    labels = c("Human", "Species-Specific"), values = c("#7fbf7b", "#af8dc3")) +
+  theme(axis.text.x = element_blank(), axis.title = element_text(size=20),
+        plot.title = element_text(size = 40, hjust = 0.5),
+        panel.background = element_rect(fill = "white"), 
+        axis.text.y = element_text(size = 20), 
+        legend.text = element_text(size = 14),
+        legend.background = element_rect(fill = "white"),
+        axis.line= element_line(size = 1, colour = "black"),
+        panel.grid.major.y = element_line(colour = "black"),
+        panel.grid.minor.y = element_line(colour = "black")) + 
+      coord_cartesian(ylim = c(-5, 11), clip = "off")
+  ggsave(filename = file.path(output_dir, paste(Sys.Date(), 
+        c, "plot_500_human_sig_versus_species.pdf")), device = "pdf", width = 15, height = 5)
+}
+
+for(i in 1:8) {
+  a <- species_sig_in_human[[i]]
+  a$X <- factor(a$X, 
+     levels = a$X[order(a$log2FoldChange_species_ref)])
+  a_subset <- dplyr::select(a, X, log2FoldChange_human_ref, SYMBOL, differs, significance, log2FoldChange_species_ref)
+  a.m <- melt(a_subset)
+  c <- names(species_sig_in_human[i]) 
+  ggplot(a.m, aes(x=X, y=value, color=variable, label = SYMBOL, size = significance)) + 
+    geom_point(alpha = 0.5) +
+    scale_size_manual(values = c(5, 3)) + 
+  geom_text_repel(data = filter(a.m, differs == "different" | significance == "nonsig") %>%
+                 filter(., variable == "log2FoldChange_species_ref"),
+            aes(label = as.character(SYMBOL)), show.legend = FALSE,
+            force = 1, min.segment.length = 0,
+            vjust = 1, direction ='y', nudge_y=1.5, segment.size = 0.25, color = "gray42") +
+ geom_segment(data = filter(a.m, differs == "different" | significance == "nonsig") %>%
+                  filter(., variable == "log2FoldChange_species_ref"),
+                 aes(x=X, xend=X, y=-5, yend=value), size = 0.25, colour = "gray42") +
+    labs(x = "Transcript", y = "log2FoldChange", title = c) +
+ scale_color_manual(name = "Reference Genome",
+                    labels = c("Human", "Species-Specific"), values = c("#7fbf7b", "#af8dc3")) +
+  theme(axis.text.x = element_blank(), axis.title = element_text(size=20),
+        plot.title = element_text(size = 40, hjust = 0.5),
+        panel.background = element_rect(fill = "white"), 
+        axis.text.y = element_text(size = 20), 
+        legend.text = element_text(size = 14),
+        legend.background = element_rect(fill = "white"),
+        axis.line= element_line(size = 1, colour = "black"),
+        panel.grid.major.y = element_line(colour = "black"),
+        panel.grid.minor.y = element_line(colour = "black")) + 
+      coord_cartesian(ylim = c(-5, 11), clip = "off")
+  ggsave(filename = file.path(output_dir, paste(Sys.Date(), 
+        c, "plot_500_species_sig_versus_human.pdf")), device = "pdf", width = 15, height = 5)
+}
+
+sapply(species_sig_in_human,
+       function(x) nrow(dplyr::filter(x, is.na(log2FoldChange_species_ref) | is.na(log2FoldChange_human_ref))))
+sapply(human_sig_in_species,
+       function(x) nrow(dplyr::filter(x, is.na(log2FoldChange_species_ref) | is.na(log2FoldChange_human_ref))))
+
+sapply(species_sig_in_human, function(x) nrow(dplyr::filter(x, significance == "nonsig" & differs == "different")))
+
+sapply(human_sig_in_species, function(x) nrow(dplyr::filter(x, significance == "nonsig" & differs == "different")))
+
+##Comparing genes with significantly different expression from mapping to species-specific genome versus the
+##corresponding values when using human genome -- the Spearman coefficients 
+Spearman_coeff_species_sig_in_human <- list()
+for(i in 1:8) {
+  a <- dplyr::select(species_sig_in_human[[i]], log2FoldChange_species_ref, log2FoldChange_human_ref) %>%
+               na.omit(.)
+  correlation <- cor(a$log2FoldChange_species_ref, a$log2FoldChange_human_ref, method = "spearman") %>%
+    round(., digits = 3)
+  species <- names(species_sig_in_human[i]) 
+  Spearman_coeff_species_sig_in_human[[i]] <- cbind(species, correlation)
+}
+write.csv(do.call(rbind, Spearman_coeff_species_sig_in_human),
+        file = file.path(output_dir, paste(Sys.Date(), "Spearman_coeff_species_sig_in_human.csv")))
+
+##Comparing genes with significantly different expression from mapping to human genome versus the
+##corresponding values when using species-specific genomes -- the Spearman coefficients 
+Spearman_coeff_human_sig_in_species <- list()
+for(i in 1:8) {
+  a <- dplyr::select(human_sig_in_species[[i]], log2FoldChange_species_ref, log2FoldChange_human_ref) %>%
+               na.omit(.)
+  correlation <- cor(a$log2FoldChange_species_ref, a$log2FoldChange_human_ref, method = "spearman") %>%
+    round(., digits = 3)
+  species <- names(human_sig_in_species[i]) 
+  Spearman_coeff_human_sig_in_species[[i]] <- cbind(species, correlation)
+}
+write.csv(do.call(rbind, Spearman_coeff_human_sig_in_species),
+        file = file.path(output_dir, paste(Sys.Date(), "Spearman_coeff_human_sig_in_species.csv")))
+
+
+```
+
+Session Info
+```{r}
+sessionInfo()
+```
+
+
+
