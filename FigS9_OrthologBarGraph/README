@@ -1,0 +1,11 @@
+Code and output for figure S9. These data correspond with that shown in Figure 3 and delineates whether the genes that were 
+found to be “unique” in their differential expression following poly(I:C) treatment compared to human was due to those genes 
+having a one-to-one human ortholog only in that particular species or species group. Since the determination of one-to-one 
+orthologs was done on a species-by-species basis prior to the analysis summarized in Figure 3, some genes could be found as 
+“unique” to a species just because there was no one-to-one human ortholog in any of the other species. The upper left panel 
+shows the “unique” genes amongst all the monkey species, the upper right panel that for the Old World monkeys and the bottom 
+two rows those that were “unique” to individual species. The columns are colored based on the species as done throughout the 
+rest of the manuscript and as shown in the figure legend. The first column for each grouped plot (or columns in the case of 
+the upper two panels) is that of the species given in the plot title. The y axis shows the number of genes that have a one-to-
+one human ortholog for each species. The maximum value is that of the first column (or group of columns for the upper two 
+panels) and corresponds to the number of genes contained within that intersection as shown in Figure 3
