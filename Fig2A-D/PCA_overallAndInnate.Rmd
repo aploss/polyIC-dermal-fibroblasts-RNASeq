@@ -1,0 +1,503 @@
+---
+title: "PCA plotting of RNASeq reads after mapping to human versus species-specific genomes"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load required libraries
+```{r, required libraries}
+library(plyr)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(biomaRt)
+library(genefilter)
+library(DESeq2)
+library(gplots)
+library(ggplot2)
+library(RColorBrewer)
+library(stringr)
+library(devtools)
+library(reshape2)
+library(data.table)
+library(purrr)
+library(ape)
+```
+
+##Purpose
+To compare by PCA the outputs of mapping reads from the dermal fibroblasts +/- poly(I:C) to the
+human genome versus their species-specific genome as it currently exists on ENSEMBL.
+
+```{r, rld files}
+##Read in the previously generated rlog(dds, blind = TRUE) outputs
+
+##From mapping to human genome
+##dds1 <- DESeqDataSetFromMatrix(countData = dd,
+                              ##colData = sampleTable_setup_again,
+                              ##design = ~species + species:donor.n + species:treatment)
+##rld_dds1 <- rlog(dds1, blind = TRUE)
+rld_dds1_human <- 
+  get(load("dds_outputs_humanalignments/2019-05-27_rld_dds1_mappedTohuman.Rdata"))
+
+##From mapping to species-specific genomes
+##dds1 <- DESeqDataSetFromMatrix(countData = dd,
+                              ##colData = sampleTable_setup_again,
+                              ##design = ~species + species:donor.n + species:treatment)
+##rld_dds1 <- rlog(dds1, blind = TRUE)
+rld_dds1_species <- 
+  get(load("dds_outputs_speciesspecificalignments/2019-05-26_rld_dds1_mappedTospecies.Rdata"))
+
+rld_dds1_mouse <- 
+  get(load("Expanded_Design_Factor_Mice/2019-07-10_allGenes_MouseMapped_dds1_rlogdds_MouseGenes.Rdata"))
+
+##Folder for putting generated plots into 
+output_dir <- "PCA_output"
+
+##Function to make rld outputs into format acceptable for further analysis
+matrix_df <- function(input) {
+matrix_made <- assay(input)
+matrix_df <- as.data.frame(matrix_made)
+matrix_df
+}
+
+species_df <- matrix_df(rld_dds1_species)
+human_df <- matrix_df(rld_dds1_human)
+mouse_df <- matrix_df(rld_dds1_mouse)
+##Getting column order to be in alphabetical order (so the same) in both data frames
+human_df <- human_df[,order(colnames(human_df))]
+species_df <- species_df[,order(colnames(species_df))]
+
+```
+
+```{r, PCA generation}
+
+##Turn the species_df and human_df so that the column names are the ENSEMBL IDs and the rows 
+##are the samples
+turned_human_df <- t(human_df)
+turned_species_df <- t(species_df)
+turned_mouse_df <- t(mouse_df)
+
+PCA_calc_human <- prcomp(turned_human_df)
+PCA_calc_species <- prcomp(turned_species_df)
+PCA_calc_mouse <- prcomp(turned_mouse_df)
+
+##For including on the final plot, I want the percent variance values
+perc_var_human=round(100*PCA_calc_human$sdev^2/sum(PCA_calc_human$sdev^2),1)
+perc_var_species=round(100*PCA_calc_species$sdev^2/sum(PCA_calc_species$sdev^2),1)
+perc_var_mouse=round(100*PCA_calc_mouse$sdev^2/sum(PCA_calc_mouse$sdev^2),1)
+
+##Making a data frame of the information for making the PCA plot
+##Mapped to human genome
+PCA_human_df <- data.frame(PCA1=PCA_calc_human$x[,1], PCA2=PCA_calc_human$x[,2], 
+                           sample = rownames(turned_human_df), 
+                           donor = str_extract(rownames(turned_human_df),
+                                               "PR\\d*|AG\\d*|S\\d{4,}|SQM\\w{1}|AF|NHDF|SR"),
+   treatment = ifelse(grepl("mock|*M\\d|*M\\d\\d", rownames(turned_human_df)), "mock", "treated"),
+   replicate = ifelse(grepl("_A_|*24A|*mockA|treatedA|M01|M1|T1|T01|mock A|treated A", 
+                            rownames(turned_human_df)), "A", 
+                  ifelse(grepl("_B_|*24B|*mockB|treatedB|M02|M2|T2|T02|mock B|treated B",
+                               rownames(turned_human_df)), "B", "C")))
+
+##Setting the color scheme for the donors
+colcoloring = function(donor) {
+  ifelse(grepl("AG07923|AG08490|PR0058", donor), "darkolivegreen3",
+      ifelse(grepl("PR00033|PR00036|PR00039", donor), "darkgreen",
+        ifelse(grepl("AG05311|SQMA|SQMB", donor), "purple",
+          ifelse(grepl("AG06105|PR00054|PR01109", donor), "#bee1f4", 
+             ifelse(grepl("PR230|PR0230|PR573|PR00573|PR107|PR00107", donor), "#7dc3e8", 
+               ifelse(grepl("PR111|PR235|PR248|PR00248", donor), "#0088ce",
+                 ifelse(grepl("S4933|S004933|S3611|S003611|S3649|S003649", donor), "#00659c",
+                   ifelse(grepl("AG08308|AG08312|AG08305", donor), "forestgreen",
+                     ifelse(grepl("NHDF|AF|SR", donor), "#004368", "grey")))))))))
+}
+
+colcolors_human <- unlist(lapply(PCA_human_df$donor, colcoloring))
+names(colcolors_human) <- PCA_human_df$donor
+
+##Mapped to species genome
+PCA_species_df <- data.frame(PCA1=PCA_calc_species$x[,1], PCA2=PCA_calc_species$x[,2], 
+                           sample = rownames(turned_species_df), 
+                           donor = str_extract(rownames(turned_species_df),
+                                               "PR\\d*|AG\\d*|S\\d{4,}|SQM\\w{1}|AF|NHDF|SR"),
+   treatment = ifelse(grepl("mock|*M\\d|*M\\d\\d", rownames(turned_species_df)), "mock", "treated"),
+   replicate = ifelse(grepl("_A_|*24A|*mockA|treatedA|M01|M1|T1|T01|mock A|treated A", 
+                            rownames(turned_species_df)), "A", 
+                  ifelse(grepl("_B_|*24B|*mockB|treatedB|M02|M2|T2|T02|mock B|treated B",
+                               rownames(turned_species_df)), "B", "C")))
+
+
+colcolors_species <- unlist(lapply(PCA_species_df$donor, colcoloring))
+names(colcolors_species) <- PCA_species_df$donor
+
+##Mouse samples
+PCA_mouse_df <- data.frame(PCA1=PCA_calc_mouse$x[,1], PCA2=PCA_calc_mouse$x[,2], 
+                           sample = rownames(turned_mouse_df), 
+                           donor = str_extract(rownames(turned_mouse_df),
+                                               "C57\\w"),
+   treatment = ifelse(grepl("mock", rownames(turned_mouse_df)), "mock", "treated"),
+   replicate = ifelse(grepl("treated A", 
+                            rownames(turned_mouse_df)), "A", 
+                  ifelse(grepl("treated B",
+                               rownames(turned_mouse_df)), "B", "C")))
+
+colcoloring_mouse = function(donor) {
+  ifelse(donor == "C57A", "deeppink4",
+                       ifelse(donor == "C57B", "deeppink2",
+                              ifelse(donor == "C57C", "lightpink", "grey")))
+                                
+}
+
+colcolors_mouse <- unlist(lapply(PCA_mouse_df$donor, colcoloring_mouse))
+names(colcolors_mouse) <- PCA_mouse_df$donor
+
+
+```
+
+Now the actual PCA plotting
+```{r, PCA plots}
+##Mapped to human genome
+p_PCA_human <- ggplot(PCA_human_df, aes(x = PCA1, y = PCA2, fill = donor, shape = treatment))
+p_PCA_human <- p_PCA_human +
+  geom_point(aes(colour = donor, shape = treatment, size = 3)) +
+    scale_color_manual(values = colcolors_human) +
+  labs(x=paste0("PC1 (",perc_var_human[1],"%)"), y=paste0("PC2 (",perc_var_human[2],"%)")) + 
+  theme_bw() + 
+  coord_cartesian(xlim = c(-80, 80), ylim = c(-50, 125)) +
+  scale_size(guide = "none") + 
+  theme(axis.title.x = element_text(face = "bold", size = 22), 
+        axis.text = element_text(size = 20), 
+        panel.grid.major = element_line(size = 0.65, color = "gray69"), 
+        panel.grid.minor = element_line(size = 0.3, color = "gray69"), 
+        axis.line = element_line(size = 2), 
+        axis.title.y = element_text(face = "bold", size = 22))
+p_PCA_human
+ggsave(file = file.path(output_dir, paste(Sys.Date(), "human_mapped_PCA_dds1_one2onehomologs.pdf")), 
+       plot = p_PCA_human, units = 'in', height = 8, width = 10, dpi = 300, device = "pdf")
+print(p_PCA_human)
+
+p_PCA_species <- ggplot(PCA_species_df, aes(x = PCA1, y = PCA2, fill = donor, shape = treatment))
+p_PCA_species <- p_PCA_species +
+  geom_point(aes(colour = donor, shape = treatment, size = 3)) +
+    scale_color_manual(values = colcolors_species) +
+  labs(x=paste0("PC1 (",perc_var_species[1],"%)"), y=paste0("PC2 (",perc_var_species[2],"%)")) + 
+  theme_bw() + 
+  coord_cartesian(xlim = c(-80, 80), ylim = c(-50, 125)) +
+  scale_size(guide = "none") + 
+  theme(axis.title.x = element_text(face = "bold", size = 22), 
+        axis.text = element_text(size = 20), 
+        panel.grid.major = element_line(size = 0.65, color = "gray69"), 
+        panel.grid.minor = element_line(size = 0.3, color = "gray69"), 
+        axis.line = element_line(size = 2), 
+        axis.title.y = element_text(face = "bold", size = 22))
+p_PCA_species
+ggsave(file = file.path(output_dir, paste(Sys.Date(), "species_mapped_PCA_dds1_one2onehomologs.pdf")), 
+       plot = p_PCA_species, units = 'in', height = 8, width = 10, dpi = 300, device = "pdf")
+print(p_PCA_species)
+
+p_PCA_mouse <- ggplot(PCA_mouse_df, aes(x = PCA1, y = PCA2, fill = donor, shape = treatment))
+p_PCA_mouse <- p_PCA_mouse +
+  geom_point(aes(colour = donor, shape = treatment, size = 3)) +
+    scale_color_manual(values = colcolors_mouse) +
+  labs(x=paste0("PC1 (",perc_var_mouse[1],"%)"), y=paste0("PC2 (",perc_var_mouse[2],"%)")) + 
+  theme_bw() + 
+  coord_cartesian(xlim = c(-80, 80), ylim = c(-50, 125)) +
+  scale_size(guide = "none") + 
+  theme(axis.title.x = element_text(face = "bold", size = 22), 
+        axis.text = element_text(size = 20), 
+        panel.grid.major = element_line(size = 0.65, color = "gray69"), 
+        panel.grid.minor = element_line(size = 0.3, color = "gray69"), 
+        axis.line = element_line(size = 2), 
+        axis.title.y = element_text(face = "bold", size = 22))
+p_PCA_mouse
+ggsave(file = file.path(output_dir, paste(Sys.Date(), "mouse_dds1.pdf")), 
+       plot = p_PCA_mouse, height = 8, width = 10, device = "pdf")
+
+```
+
+```{r, PCA innate}
+##Download the InnateDB file of human innate gene symbols
+innate <- read.csv(file = "innatedb_curated_genes.csv") %>%
+  filter(Species == "9606") %>%
+  distinct(Gene.Symbol, .keep_all = TRUE) 
+
+innate_mouse <- read.csv(file = "innatedb_curated_genes.csv") %>%
+  filter(Species == "10090") %>%
+  distinct(Gene.Symbol, .keep_all = TRUE) 
+
+##Specifying that we want to work with the ENSEMBL database -- want to use ENSEMBL 96
+##since this was the  version we used for processing our RNASeq reads.
+#ensembl <- useMart("ENSEMBL_MART_ENSEMBL",
+ #         host = "http://apr2019.archive.ensembl.org",
+  #        ensemblRedirect = FALSE)
+#human_ensembl <- useDataset("hsapiens_gene_ensembl", mart = ensembl)
+
+##For mouse, we need an even older ENSEMBL database.
+#ensembl2016 <- useMart("ENSEMBL_MART_ENSEMBL",
+ #         host = "http://jul2016.archive.ensembl.org")
+
+#mouse_ensembl <- useDataset("mmusculus_gene_ensembl", mart = ensembl2016)
+
+##The innate gene list that was downloaded from innateDB only listed the gene symbol
+##and gave no other identifier. Here, we wrote a function to pull in the ENSEMBL ID, biotype, gene name
+##and description for each of the innate gene symbols in our document we read in as "innate"
+#featurepage_symbol <- function(species_ensembl) {
+ # getBM(attributes = c('ensembl_gene_id', 'description', 
+  #                            'external_gene_name', 'gene_biotype'),
+   #               filters = 'external_gene_name', 
+    #                values = innate[,2], 
+     #             mart = species_ensembl)
+#}
+
+#featurepage_symbol_mouse <- function(species_ensembl) {
+ # getBM(attributes = c('ensembl_gene_id', 'description', 
+  #                            'external_gene_name', 'gene_biotype'),
+               #   filters = 'external_gene_name', 
+                #    values = innate_mouse[,2], 
+                 # mart = species_ensembl)
+#}
+#feature_mouse_innate <- featurepage_symbol_mouse(mouse_ensembl)
+
+##Using the "featurepage_symbol" function to find specifically the human gene information
+##for each of the InnateDB symbols in "innate."
+#feature_human_innate <- featurepage_symbol(human_ensembl) %>%
+ #  dplyr::rename(., hsapiens_homolog_ensembl_gene = ensembl_gene_id) %>%
+  ###So when you pull the symbols from the human ENSEMBL mart that was set up, you get 
+  ## a class of genes known as LRG_gene which is from the Locus Reference Genomic 
+  ##record which is a way to distinguish between a gene that has mutliple 
+  ##sequence variants. Thus, all the entries where the biotype = LRG_gene can be 
+  ##removed for our purposes. 
+  #dplyr::filter_at(., vars(contains("biotype")), any_vars((. != "LRG_gene"))) %>%
+  #unique() ##there were four rows that were identical
+##Note that there are in some cases multiple ENSEMBL IDs for a given gene symbol. Hence,
+##there are more rows in this than in the original list of innate immunity genes.
+##The number of distinct gene symbols is found by this:
+#distinct(feature_human_innate, external_gene_name, .keep_all = TRUE) %>%
+  #nrow()
+#write.csv(feature_human_innate, paste(Sys.Date(), "InnateDBGeneFeatures.csv"))
+
+feature_human_innate <- read.csv("2019-10-20 InnateDBGeneFeatures.csv")
+
+##With all this information fleshed out for the innateDB genes, we now want to limit 
+##the data frames we made from the rlog(dds) to these genes. 
+ innate_human_df <- human_df[rownames(human_df) %in% feature_human_innate[,2],] 
+ innate_species_df <- species_df[rownames(species_df) %in% feature_human_innate[,2],] 
+ #innate_mouse_df <- mouse_df[rownames(mouse_df) %in% feature_mouse_innate[,1],]
+
+#write.csv(rownames(innate_human_df), 
+ #         paste(Sys.Date(), "InnateDB_ENSEMBL_IDs_One2OneOrthosAllSpecies.csv"))
+
+ 
+```
+
+```{r, innate PCA 2}
+##Turn the species_df and human_df so that the column names are the ENSEMBL IDs and the rows 
+##are the samples
+turned_innate_human_df <- t(innate_human_df)
+turned_innate_species_df <- t(innate_species_df)
+#turned_innate_mouse_df <- t(innate_mouse_df)
+
+PCA_calc_human_innate <- prcomp(turned_innate_human_df)
+PCA_calc_species_innate <- prcomp(turned_innate_species_df)
+#PCA_calc_mouse_innate <- prcomp(turned_innate_mouse_df)
+
+##For including on the final plot, I want the percent variance values
+perc_var_human_innate=round(100*PCA_calc_human_innate$sdev^2/sum(PCA_calc_human_innate$sdev^2),1)
+perc_var_species_innate=round(100*PCA_calc_species_innate$sdev^2/sum(PCA_calc_species_innate$sdev^2),1)
+#perc_var_mouse_innate=round(100*PCA_calc_mouse_innate$sdev^2/sum(PCA_calc_mouse_innate$sdev^2),1)
+
+##Making a data frame of the information for making the PCA plot
+##Mapped to human genome
+PCA_human_innate_df <- data.frame(PCA1=PCA_calc_human_innate$x[,1], PCA2=PCA_calc_human_innate$x[,2], 
+                           sample = rownames(turned_innate_human_df), 
+                           donor = str_extract(rownames(turned_innate_human_df),
+                                               "PR\\d*|AG\\d*|S\\d{4,}|SQM\\w{1}|AF|NHDF|SR"),
+   treatment = ifelse(grepl("mock|*M\\d|*M\\d\\d", rownames(turned_innate_human_df)), "mock", "treated"),
+   replicate = ifelse(grepl("_A_|*24A|*mockA|treatedA|M01|M1|T1|T01|mock A|treated A", 
+                            rownames(turned_innate_human_df)), "A", 
+                  ifelse(grepl("_B_|*24B|*mockB|treatedB|M02|M2|T2|T02|mock B|treated B",
+                               rownames(turned_innate_human_df)), "B", "C")))
+
+##Setting the color scheme for the donors
+colcolors_human_innate <- unlist(lapply(PCA_human_innate_df$donor, colcoloring))
+names(colcolors_human_innate) <- PCA_human_innate_df$donor
+
+##Mapped to species-specific genome
+PCA_species_innate_df <- data.frame(PCA1=PCA_calc_species_innate$x[,1], PCA2=PCA_calc_species_innate$x[,2], 
+                           sample = rownames(turned_innate_species_df), 
+                           donor = str_extract(rownames(turned_innate_species_df),
+                                               "PR\\d*|AG\\d*|S\\d{4,}|SQM\\w{1}|AF|NHDF|SR"),
+   treatment = ifelse(grepl("mock|*M\\d|*M\\d\\d", rownames(turned_innate_species_df)), "mock", "treated"),
+   replicate = ifelse(grepl("_A_|*24A|*mockA|treatedA|M01|M1|T1|T01|mock A|treated A", 
+                            rownames(turned_innate_species_df)), "A", 
+                  ifelse(grepl("_B_|*24B|*mockB|treatedB|M02|M2|T2|T02|mock B|treated B",
+                               rownames(turned_innate_species_df)), "B", "C")))
+
+
+colcolors_species_innate <- unlist(lapply(PCA_species_innate_df$donor, colcoloring))
+names(colcolors_species_innate) <- PCA_species_innate_df$donor
+
+#Mouse
+#PCA_mouse_innate_df <- data.frame(PCA1=PCA_calc_mouse_innate$x[,1], PCA2=PCA_calc_mouse_innate$x[,2], 
+ #                          sample = rownames(turned_innate_mouse_df), 
+  #                         donor = str_extract(rownames(turned_innate_mouse_df),
+  #                                             "C57\\w"),
+   #treatment = ifelse(grepl("mock", rownames(turned_innate_mouse_df)), "mock", "treated"),
+  # replicate = ifelse(grepl("treated A", 
+   #                         rownames(turned_innate_mouse_df)), "A", 
+    #              ifelse(grepl("treated B",
+     #                          rownames(turned_innate_mouse_df)), "B", "C")))
+
+#colcoloring_mouse = function(donor) {
+ # ifelse(donor == "C57A", "deeppink4",
+  #                     ifelse(donor == "C57B", "deeppink2",
+   #                           ifelse(donor == "C57C", "lightpink", "grey")))
+                                
+#}
+
+#colcolors_mouse_innate <- unlist(lapply(PCA_mouse_innate_df$donor, colcoloring_mouse))
+#names(colcolors_mouse_innate) <- PCA_mouse_innate_df$donor
+
+```
+For a different visualization that takes into account all sources of variance and not just the first two 
+principal components, I will look at a dendrogram of the rlog RNASeq read counts for each of the innate
+genes when aligning to either the human or the species-specific reference genome to see how the samples cluster.
+```{r, clustering}
+##Heatmap data of the sample clustering can be pulled after using the heatmap.2 function
+##Human genome alignment
+hm_human_innate <- heatmap.2(turned_innate_human_df)
+hc_human_innate <- as.hclust(hm_human_innate$rowDendrogram )
+
+##Species-specific alignment
+hm_species_innate <- heatmap.2(turned_innate_species_df)
+hc_species_innate <- as.hclust(hm_species_innate$rowDendrogram )
+
+##Setting up color schemes
+cluster_labels <- function(input) { 
+  str_extract(input$labels, "PR\\d*|AG\\d*|S\\d{4,}|SQM\\w{1}|AF|NHDF|SR")
+}
+
+cluster_labels_species <- cluster_labels(hc_species_innate)
+cluster_labels_human <- cluster_labels(hc_human_innate)
+
+treatment_labels <- function(input) {
+  ifelse(grepl("*mock|*M\\d|*M\\d\\d", input$labels), "mock", "treated")
+}
+
+treatment_labels_species <- treatment_labels(hc_species_innate)
+treatment_labels_human <- treatment_labels(hc_human_innate)
+
+treatmentcoloring = function(treatment) {
+  ifelse(treatment == "mock", "orange", "red")
+}
+
+treatmentcolors_species <- unlist(lapply(treatment_labels_species, treatmentcoloring))
+treatmentcolors_human <- unlist(lapply(treatment_labels_human, treatmentcoloring))
+
+clustcolors_human <- unlist(lapply(cluster_labels_human, colcoloring))
+clustcolors_human
+
+clustcolors_species <- unlist(lapply(cluster_labels_species, colcoloring))
+clustcolors_species
+
+##Alignment of all species with the human genome
+png(file = file.path(output_dir, paste(Sys.Date(), "humanalignment_innateDBgenes_phylo.png")), units = 'in', height = 7,  width = 20, res = 300)
+plot(as.phylo(hc_human_innate), tip.color = clustcolors_human, cex = 0.75, label.offset = 1, edge.lty = 3, 
+     font = 1, no.margin = TRUE, direction = "downwards")
+tiplabels(pch = 19, col = treatmentcolors_human)
+nodelabels(pch = 15, col = "grey")
+add.scale.bar()
+dev.off()
+
+png(file = file.path(output_dir, paste(Sys.Date(), "speciesalignment_innateDBgenes_phylo.png")), 
+    units = 'in', height = 7, 
+    width = 20, res = 300)
+plot(as.phylo(hc_species_innate), tip.color = clustcolors_species, cex = 0.75, label.offset = 1, edge.lty = 3, 
+     font = 1, no.margin = TRUE, direction = "downwards")
+tiplabels(pch = 19, col = treatmentcolors_species)
+nodelabels(pch = 15, col = "grey")
+add.scale.bar()
+dev.off()
+
+
+
+
+```
+
+Now the actual PCA plotting of the innate immune-limited genes
+```{r, PCA plots, innate}
+##Mapped to human genome
+p_PCA_human_innate <- ggplot(PCA_human_innate_df, aes(x = PCA1, y = PCA2, fill = donor, shape = treatment))
+p_PCA_human_innate <- p_PCA_human_innate +
+  geom_point(aes(colour = donor, shape = treatment, size = 3)) +
+    scale_color_manual(values = colcolors_human_innate) +
+  labs(x=paste0("PC1 (",perc_var_human_innate[1],"%)"), y=paste0("PC2 (",perc_var_human_innate[2],"%)")) + 
+  theme_bw() + 
+  coord_cartesian(xlim = c(-30, 30), ylim = c(-30, 30)) +
+  ##geom_text_repel(aes(label = ifelse(grepl("*107|230|573", donor), paste(donor), ""))) +
+  scale_size(guide = "none") + 
+  theme(axis.title.x = element_text(face = "bold", size = 22), 
+        axis.text = element_text(size = 20), 
+        panel.grid.major = element_line(size = 0.65, color = "gray69"), 
+        panel.grid.minor = element_line(size = 0.3, color = "gray69"), 
+        axis.line = element_line(size = 2), 
+        axis.title.y = element_text(face = "bold", size = 22))
+p_PCA_human_innate
+ggsave(file = file.path(output_dir, paste(Sys.Date(), "human_mapped_PCA_dds1_innate.pdf")), plot = p_PCA_human_innate,
+       units = 'in', height = 8, width = 10, dpi = 300, device = "pdf")
+print(p_PCA_human_innate)
+
+p_PCA_species_innate <- ggplot(PCA_species_innate_df, aes(x = PCA1, y = PCA2, fill = donor, shape = treatment))
+p_PCA_species_innate <- p_PCA_species_innate +
+  geom_point(aes(colour = donor, shape = treatment, size = 3)) +
+    scale_color_manual(values = colcolors_species_innate) +
+  labs(x=paste0("PC1 (",perc_var_species_innate[1],"%)"), y=paste0("PC2 (",perc_var_species_innate[2],"%)")) + 
+  ##geom_text_repel(aes(label = ifelse(grepl("*107|230|573", donor), paste(donor), ""))) +
+  theme_bw() + 
+  coord_cartesian(xlim = c(-30, 30), ylim = c(-30, 30)) +
+  scale_size(guide = "none") + 
+  theme(axis.title.x = element_text(face = "bold", size = 22), 
+        axis.text = element_text(size = 20), 
+        panel.grid.major = element_line(size = 0.65, color = "gray69"), 
+        panel.grid.minor = element_line(size = 0.3, color = "gray69"), 
+        axis.line = element_line(size = 2), 
+        axis.title.y = element_text(face = "bold", size = 22))
+p_PCA_species_innate
+ggsave(file = file.path(output_dir, paste(Sys.Date(), "species_mapped_PCA_dds1_innate.pdf")), 
+       plot = p_PCA_species_innate, units = 'in', height = 8, width = 10, dpi = 300, device = "pdf")
+print(p_PCA_species_innate)
+
+#p_PCA_mouse_innate <- ggplot(PCA_mouse_innate_df, aes(x = PCA1, y = PCA2, fill = donor, shape = 
+  #                                                      treatment))
+#p_PCA_mouse_innate <- p_PCA_mouse_innate +
+ # geom_point(aes(colour = donor, shape = treatment, size = 3)) +
+  #  scale_color_manual(values = colcolors_mouse_innate) +
+  #labs(x=paste0("PC1 (",perc_var_mouse_innate[1],"%)"), 
+   #    y=paste0("PC2 (",perc_var_mouse_innate[2],"%)")) + 
+  ##geom_text_repel(aes(label = ifelse(grepl("*107|230|573", donor), paste(donor), ""))) +
+  #theme_bw() + 
+  #coord_cartesian(xlim = c(-30, 30), ylim = c(-30, 30)) +
+  #scale_size(guide = "none") + 
+  #theme(axis.title.x = element_text(face = "bold", size = 22), 
+   #     axis.text = element_text(size = 20), 
+    #    panel.grid.major = element_line(size = 0.65, color = "gray69"), 
+     #   panel.grid.minor = element_line(size = 0.3, color = "gray69"), 
+      #  axis.line = element_line(size = 2), 
+       # axis.title.y = element_text(face = "bold", size = 22))
+#p_PCA_mouse_innate
+#ggsave(file = file.path(output_dir, paste(Sys.Date(), "mouse_innate.pdf")), 
+ #      plot = p_PCA_mouse_innate,  height = 8, width = 10,device = "pdf")
+#print(p_PCA_mouse_innate)
+
+
+
+
+```
+
+Session Info
+```{r, session info}
+sessionInfo()
+```
+
