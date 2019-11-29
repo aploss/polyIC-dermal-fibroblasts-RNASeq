@@ -1,0 +1,158 @@
+---
+title: "GAGE analysis of various dds outputs"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load required libraries
+```{r required libraries}
+library(plyr)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(biomaRt)
+library(genefilter)
+library(DESeq2)
+library(gplots)
+library(ggplot2)
+library(RColorBrewer)
+library(stringr)
+library(viridis)
+library(devtools)
+library(ggrepel)
+library(reshape2)
+library(data.table)
+library(purrr)
+library(forcats)
+library(ape)
+library(gtools)
+source("http://bioconductor.org/biocLite.R")
+biocLite("org.Hs.eg.db")
+library(gage)
+library(gageData)
+data(kegg.gs)
+data(go.sets.hs)
+data(go.subs.hs)
+data(kegg.gs)
+go.bp = go.sets.hs[go.subs.hs$BP] ##Only examining GO biological processes terms
+
+```
+
+##Purpose
+To compare the gene set (specifically KEGG pathways) enrichment within the various DGE profiles generated after mapping reads
+from the dermal fibroblasts +/- poly(I:C) to the human genome versus their species genome as it currently exists on ENSEMBL.
+```{r subsetting}
+
+HumanMapped_DGE <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_HumanMapped"
+output_dir <-"Expanded_Design_Factor_SpeciesHomologs_Outputs_HumanMapped"
+sampleFiles_HumanMapped <- list.files(basename(Sys.glob(file.path(HumanMapped_DGE))), 
+                  pattern = "treated dds1 HumanMapped_DGE_results.txt|*related.*.txt")
+                                           
+sampleNames_HumanMapped <- sub('_treated_v_mock|.treatmenttreated.*', '', sampleFiles_HumanMapped) %>%
+  sub('\\d+-\\d+-\\d+\\s', '', .) %>%
+  sub("HumanMapped.*", "", .) %>%
+  sub('species', '', .)
+length(sampleFiles_HumanMapped)
+
+SpeciesMapped_DGE <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_SpeciesMapped"
+output_dir <- "Expanded_Design_Factor_SpeciesHomologs_Outputs_SpeciesMapped"
+
+sampleFiles_SpeciesMapped <- list.files(basename(Sys.glob(file.path(SpeciesMapped_DGE))), 
+                  pattern = "*treated dds1 DGE_results.txt|*related.*.txt")
+                                           
+sampleNames_SpeciesMapped <- sub('_treated_v_mock|.treatmenttreated.*', '', sampleFiles_SpeciesMapped) %>%
+  sub('\\d+-\\d+-\\d+\\s', '', .) %>%
+  sub("SpeciesMapped.*", "", .) %>%
+  sub('species', '', .)
+length(sampleFiles_SpeciesMapped)
+
+
+exptcounts <- function(files) {     
+  d <- read.delim(files)
+  d
+}
+
+human_DGEs_read <-llply(file.path(HumanMapped_DGE, sampleFiles_HumanMapped), exptcounts) 
+names(human_DGEs_read) <- sampleNames_HumanMapped
+
+species_DGEs_read <-llply(file.path(SpeciesMapped_DGE, sampleFiles_SpeciesMapped), exptcounts) 
+names(species_DGEs_read) <- sampleNames_SpeciesMapped
+
+```
+
+GAGE analysis and heatmap generation
+```{r GAGE and heatmap}
+
+output_dir <- "GAGE_output"
+
+##GAGE analysis
+gage_mixed <- function(input) {     
+  dd <-dplyr::select(input, log2FoldChange, padj, ENTREZID) %>%
+    na.omit() %>%
+    dplyr::select(log2FoldChange, ENTREZID) %>%
+    distinct(ENTREZID, .keep_all = TRUE) 
+  dd$ENTREZID <- gsub(pattern = ",.*", replacement = "", dd$ENTREZID)
+  e = dd$log2FoldChange
+  names(e) = dd$ENTREZID
+  ##As per GAGE manual suggestion, looking at same.dir = FALSE since genes in pathways
+  ##do not tend to just increase or just decrease.
+  ef <- gage(na.omit(e), gsets = kegg.gs, same.dir = FALSE)
+  g <- ef$greater
+  gg <- g[mixedorder(rownames(g), decreasing = TRUE),] %>%
+    as.data.frame() %>%
+    rownames_to_column(., var = "pathway")
+  gg
+##if applying to a list, need to have "gg" in this line. if applying to a single data frame, then script is 
+  ##good as is.
+}
+
+GAGE_heatmap <- function(DGEs, name) {
+DGEs_GAGE <- llply(DGEs, gage_mixed) %>%
+  llply(., function(x) dplyr::select(x, pathway, q.val)) %>%
+  reduce(full_join, by = "pathway") %>%
+  mutate(., sum = rowSums(.[,2:17])) %>%
+  dplyr::arrange(., sum)
+
+colnames(DGEs_GAGE) <- c("pathway", names(DGEs), "sum")
+write.table(DGEs_GAGE, file = file.path(output_dir, paste0(Sys.Date(),
+      name, ".txt")), row.names=FALSE, sep="\t", quote=FALSE)
+
+DGEs_GAGE_sub <- dplyr::filter_at(DGEs_GAGE, vars(-pathway), any_vars(. <= 0.09))
+write.table(DGEs_GAGE_sub, file = file.path(output_dir, paste0(Sys.Date(),
+     name, "Significant.txt")), row.names=FALSE, sep="\t", quote=FALSE)
+
+##Now make heatmap
+gage.m <- melt(DGEs_GAGE_sub, id = 'pathway') 
+gage.m$value <- -log10(gage.m$value)
+gage.m$pathway <- factor(gage.m$pathway,
+        levels = DGEs_GAGE_sub$pathway[order(DGEs_GAGE_sub$sum, decreasing = TRUE)])
+gage.m <- gage.m[gage.m$variable != "sum",]
+##the more significant, the higher the value. 
+##Color switch is is at q.val ~ 0.09
+pdf(file = file.path(output_dir, paste0(Sys.Date(), name, "Heatmap.pdf")), height = 4, width = 7)
+plot <- ggplot(gage.m,  aes(gage.m$variable, gage.m$pathway)) 
+p <- plot + geom_tile(color = 'black', aes(fill = gage.m$value)) +
+  theme_bw(base_size = 6) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.y = element_text(size = rel(1.5))) +
+  scale_fill_gradient2(low = "#e66101", high = "#542788", mid = "white", midpoint = 1.046, limits = c(5E-9, 5)) +
+  ylab("") +
+  xlab("\n") 
+print(p)
+dev.off()
+}
+
+GAGE_heatmap(human_DGEs_read, "HumanMapped_GAGE_One2OneOrthos_SpeciesBasis")
+GAGE_heatmap(species_DGEs_read, "SpeciesMapped_GAGE_One2OneOrthos_SpeciesBasis")
+```
+
+Session Info
+```{r}
+sessionInfo()
+```
+
+
+
