@@ -1,0 +1,119 @@
+---
+title: "GAGE analysis of mouse dds output"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Load required libraries
+```{r required libraries}
+library(plyr)
+library(dplyr)
+library(tibble)
+library(stringr)
+library(biomaRt)
+library(genefilter)
+library(DESeq2)
+library(gplots)
+library(ggplot2)
+library(RColorBrewer)
+library(stringr)
+library(devtools)
+library(ggrepel)
+library(reshape2)
+library(data.table)
+library(purrr)
+library(gtools)
+library(gage)
+library(gageData)
+library(org.Mm.eg.db)
+data(kegg.sets.mm)
+data(sigmet.idx.mm)
+kegg.sets.mm.s = kegg.sets.mm[sigmet.idx.mm]
+
+```
+
+##Purpose
+To compare the pathway enrichment within the DGE profiles for murine dermal fibroblasts following
+poly(I:C) transfection.
+```{r subsetting}
+
+Mouse <- "Expanded_Design_Factor_Mice"
+Mouse_DGEs <-  basename(Sys.glob(file.path(Mouse, "*DGE_results.txt")))
+
+exptcounts <- function(files) {     
+  d <- read.delim(files)
+  d
+}
+
+Mouse_DGEs_read <- exptcounts(file.path(Mouse, Mouse_DGEs))
+
+```
+
+Performing GAGE analysis and generating output
+```{r GAGE and heatmap}
+
+output_dir <- "GAGE_output"
+
+##GAGE analysis
+gage_mixed <- function(input) {     
+  dd <-dplyr::select(input, log2FoldChange, padj, ENTREZID) %>%
+    na.omit() %>%
+    dplyr::select(log2FoldChange, ENTREZID) %>%
+    dplyr::distinct(ENTREZID, .keep_all = TRUE) 
+  dd$ENTREZID <- gsub(pattern = ",.*", replacement = "", dd$ENTREZID)
+  e = dd$log2FoldChange
+  names(e) = dd$ENTREZID
+  ##As per GAGE manual suggestion, looking at same.dir = FALSE since genes in pathways
+  ##do not tend to just increase or just decrease.
+  ef <- gage(na.omit(e), gsets = kegg.sets.mm.s, same.dir = FALSE)
+  g <- ef$greater
+  gg <- g[mixedorder(rownames(g), decreasing = TRUE),] %>%
+    as.data.frame() %>%
+    rownames_to_column(., var = "pathway")
+  gg
+}
+
+
+GAGE_heatmap <- function(DGEs, name) {
+DGEs_GAGE <- gage_mixed(DGEs) %>%
+  dplyr::select(pathway, q.val) 
+
+write.table(DGEs_GAGE, file = file.path(output_dir, paste0(Sys.Date(),
+      name, ".txt")), row.names=FALSE, sep="\t", quote=FALSE)
+
+DGEs_GAGE_sub <- dplyr::filter_at(DGEs_GAGE, vars(-pathway), any_vars(. <= 0.09))
+write.table(DGEs_GAGE_sub, file = file.path(output_dir, paste0(Sys.Date(),
+     name, "Significant.txt")), row.names=FALSE, sep="\t", quote=FALSE)
+
+##Now make heatmap
+gage.m <- melt(DGEs_GAGE_sub, id = 'pathway') 
+gage.m$value <- -log10(gage.m$value)
+gage.m[order(gage.m$value, decreasing = TRUE)]
+##the more significant, the higher the value. 
+##Color switch is is at q.val ~ 0.09
+pdf(file = file.path(output_dir, paste0(Sys.Date(), name, "Heatmap.pdf")), height = 2, width = 3.5)
+plot <- ggplot(gage.m,  aes(gage.m$variable, gage.m$pathway)) 
+p <- plot + geom_tile(color = 'black', aes(fill = gage.m$value)) +
+  theme_bw(base_size = 6) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1),
+        axis.text.y = element_text(size = rel(1.5))) +
+  scale_fill_gradient2(low = "#e66101", high = "#542788", mid = "white", midpoint = 1.046, limits = c(5E-9, 5)) +
+  ylab("") +
+  xlab("\n") 
+print(p)
+dev.off()
+}
+
+GAGE_heatmap(Mouse_DGEs_read, "MouseGAGE")
+```
+
+Session Info
+```{r}
+sessionInfo()
+```
+
+
+

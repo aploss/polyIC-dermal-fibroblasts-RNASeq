@@ -1,0 +1,178 @@
+pathway	q.val
+mmu04977 Vitamin digestion and absorption	0.999975123113851
+mmu04976 Bile secretion	0.999975123113851
+mmu04975 Fat digestion and absorption	0.999975123113851
+mmu04974 Protein digestion and absorption	0.637893551204867
+mmu04973 Carbohydrate digestion and absorption	0.999975123113851
+mmu04972 Pancreatic secretion	0.999975123113851
+mmu04971 Gastric acid secretion	0.999975123113851
+mmu04970 Salivary secretion	0.999975123113851
+mmu04966 Collecting duct acid secretion	0.999975123113851
+mmu04964 Proximal tubule bicarbonate reclamation	0.999975123113851
+mmu04962 Vasopressin-regulated water reabsorption	0.999975123113851
+mmu04960 Aldosterone-regulated sodium reabsorption	0.999975123113851
+mmu04920 Adipocytokine signaling pathway	0.999975123113851
+mmu04916 Melanogenesis	0.999975123113851
+mmu04914 Progesterone-mediated oocyte maturation	0.999975123113851
+mmu04912 GnRH signaling pathway	0.999975123113851
+mmu04910 Insulin signaling pathway	0.999975123113851
+mmu04810 Regulation of actin cytoskeleton	0.999975123113851
+mmu04744 Phototransduction	0.999975123113851
+mmu04742 Taste transduction	0.999975123113851
+mmu04740 Olfactory transduction	0.757557466999723
+mmu04730 Long-term depression	0.999975123113851
+mmu04722 Neurotrophin signaling pathway	0.999975123113851
+mmu04720 Long-term potentiation	0.999975123113851
+mmu04710 Circadian rhythm - mammal	0.999975123113851
+mmu04672 Intestinal immune network for IgA production	0.112781501841105
+mmu04670 Leukocyte transendothelial migration	0.462236684302189
+mmu04666 Fc gamma R-mediated phagocytosis	0.999975123113851
+mmu04664 Fc epsilon RI signaling pathway	0.999975123113851
+mmu04662 B cell receptor signaling pathway	0.999975123113851
+mmu04660 T cell receptor signaling pathway	0.999975123113851
+mmu04650 Natural killer cell mediated cytotoxicity	0.421649605391445
+mmu04640 Hematopoietic cell lineage	0.235522038711209
+mmu04630 Jak-STAT signaling pathway	0.461247426421221
+mmu04623 Cytosolic DNA-sensing pathway	0.112781501841105
+mmu04622 RIG-I-like receptor signaling pathway	0.252956436384296
+mmu04621 NOD-like receptor signaling pathway	0.112781501841105
+mmu04620 Toll-like receptor signaling pathway	0.101942397356008
+mmu04614 Renin-angiotensin system	0.999975123113851
+mmu04612 Antigen processing and presentation	0.0768156754929318
+mmu04610 Complement and coagulation cascades	0.232711024859862
+mmu04540 Gap junction	0.999975123113851
+mmu04530 Tight junction	0.999975123113851
+mmu04520 Adherens junction	0.999975123113851
+mmu04514 Cell adhesion molecules (CAMs)	0.005223675369909
+mmu04512 ECM-receptor interaction	0.462236684302189
+mmu04510 Focal adhesion	0.999975123113851
+mmu04380 Osteoclast differentiation	0.410344517828141
+mmu04370 VEGF signaling pathway	0.999975123113851
+mmu04360 Axon guidance	0.999975123113851
+mmu04350 TGF-beta signaling pathway	0.999975123113851
+mmu04340 Hedgehog signaling pathway	0.999975123113851
+mmu04330 Notch signaling pathway	0.999975123113851
+mmu04320 Dorso-ventral axis formation	0.999975123113851
+mmu04310 Wnt signaling pathway	0.999975123113851
+mmu04270 Vascular smooth muscle contraction	0.999975123113851
+mmu04260 Cardiac muscle contraction	0.999975123113851
+mmu04210 Apoptosis	0.999975123113851
+mmu04150 mTOR signaling pathway	0.999975123113851
+mmu04146 Peroxisome	0.999975123113851
+mmu04145 Phagosome	0.112781501841105
+mmu04144 Endocytosis	0.999975123113851
+mmu04142 Lysosome	0.999975123113851
+mmu04141 Protein processing in endoplasmic reticulum	0.999975123113851
+mmu04140 Regulation of autophagy	0.999975123113851
+mmu04130 SNARE interactions in vesicular transport	0.999975123113851
+mmu04122 Sulfur relay system	0.999975123113851
+mmu04120 Ubiquitin mediated proteolysis	0.999975123113851
+mmu04115 p53 signaling pathway	0.999975123113851
+mmu04114 Oocyte meiosis	0.999975123113851
+mmu04110 Cell cycle	0.999975123113851
+mmu04070 Phosphatidylinositol signaling system	0.999975123113851
+mmu04062 Chemokine signaling pathway	0.0768156754929318
+mmu04020 Calcium signaling pathway	0.321271025905914
+mmu04012 ErbB signaling pathway	0.999975123113851
+mmu04010 MAPK signaling pathway	0.999975123113851
+mmu03450 Non-homologous end-joining	0.999975123113851
+mmu03440 Homologous recombination	0.999975123113851
+mmu03430 Mismatch repair	0.999975123113851
+mmu03420 Nucleotide excision repair	0.999975123113851
+mmu03410 Base excision repair	0.999975123113851
+mmu03320 PPAR signaling pathway	0.999975123113851
+mmu03060 Protein export	0.999975123113851
+mmu03050 Proteasome	0.999975123113851
+mmu03040 Spliceosome	0.999975123113851
+mmu03030 DNA replication	0.999975123113851
+mmu03022 Basal transcription factors	0.999975123113851
+mmu03020 RNA polymerase	0.999975123113851
+mmu03018 RNA degradation	0.999975123113851
+mmu03015 mRNA surveillance pathway	0.999975123113851
+mmu03013 RNA transport	0.999975123113851
+mmu03010 Ribosome	0.999975123113851
+mmu03008 Ribosome biogenesis in eukaryotes	0.999975123113851
+mmu02010 ABC transporters	0.235522038711209
+mmu01040 Biosynthesis of unsaturated fatty acids	0.999975123113851
+mmu00983 Drug metabolism - other enzymes	0.999975123113851
+mmu00982 Drug metabolism - cytochrome P450	0.462236684302189
+mmu00980 Metabolism of xenobiotics by cytochrome P450	0.410344517828141
+mmu00970 Aminoacyl-tRNA biosynthesis	0.999975123113851
+mmu00920 Sulfur metabolism	NA
+mmu00910 Nitrogen metabolism	0.999975123113851
+mmu00900 Terpenoid backbone biosynthesis	0.999975123113851
+mmu00860 Porphyrin and chlorophyll metabolism	0.999975123113851
+mmu00830 Retinol metabolism	0.462236684302189
+mmu00790 Folate biosynthesis	NA
+mmu00785 Lipoic acid metabolism	NA
+mmu00780 Biotin metabolism	NA
+mmu00770 Pantothenate and CoA biosynthesis	0.999975123113851
+mmu00760 Nicotinate and nicotinamide metabolism	0.999975123113851
+mmu00750 Vitamin B6 metabolism	NA
+mmu00740 Riboflavin metabolism	NA
+mmu00730 Thiamine metabolism	NA
+mmu00670 One carbon pool by folate	0.999975123113851
+mmu00650 Butanoate metabolism	0.999975123113851
+mmu00640 Propanoate metabolism	0.999975123113851
+mmu00630 Glyoxylate and dicarboxylate metabolism	0.999975123113851
+mmu00620 Pyruvate metabolism	0.999975123113851
+mmu00604 Glycosphingolipid biosynthesis - ganglio series	0.999975123113851
+mmu00603 Glycosphingolipid biosynthesis - globo series	0.999975123113851
+mmu00601 Glycosphingolipid biosynthesis - lacto and neolacto series	0.999975123113851
+mmu00600 Sphingolipid metabolism	0.999975123113851
+mmu00592 alpha-Linolenic acid metabolism	0.999975123113851
+mmu00591 Linoleic acid metabolism	0.999975123113851
+mmu00590 Arachidonic acid metabolism	0.999975123113851
+mmu00565 Ether lipid metabolism	0.999975123113851
+mmu00564 Glycerophospholipid metabolism	0.999975123113851
+mmu00563 Glycosylphosphatidylinositol(GPI)-anchor biosynthesis	0.999975123113851
+mmu00562 Inositol phosphate metabolism	0.999975123113851
+mmu00561 Glycerolipid metabolism	0.999975123113851
+mmu00534 Glycosaminoglycan biosynthesis - heparan sulfate	0.999975123113851
+mmu00533 Glycosaminoglycan biosynthesis - keratan sulfate	0.999975123113851
+mmu00532 Glycosaminoglycan biosynthesis - chondroitin sulfate	0.999975123113851
+mmu00531 Glycosaminoglycan degradation	0.999975123113851
+mmu00520 Amino sugar and nucleotide sugar metabolism	0.999975123113851
+mmu00514 Other types of O-glycan biosynthesis	0.999975123113851
+mmu00512 Mucin type O-Glycan biosynthesis	0.999975123113851
+mmu00511 Other glycan degradation	0.999975123113851
+mmu00510 N-Glycan biosynthesis	0.999975123113851
+mmu00500 Starch and sucrose metabolism	0.999975123113851
+mmu00480 Glutathione metabolism	0.999975123113851
+mmu00472 D-Arginine and D-ornithine metabolism	NA
+mmu00471 D-Glutamine and D-glutamate metabolism	NA
+mmu00460 Cyanoamino acid metabolism	NA
+mmu00450 Selenocompound metabolism	0.999975123113851
+mmu00430 Taurine and hypotaurine metabolism	NA
+mmu00410 beta-Alanine metabolism	0.999975123113851
+mmu00400 Phenylalanine, tyrosine and tryptophan biosynthesis	NA
+mmu00380 Tryptophan metabolism	0.999975123113851
+mmu00360 Phenylalanine metabolism	0.999975123113851
+mmu00350 Tyrosine metabolism	0.999975123113851
+mmu00340 Histidine metabolism	0.999975123113851
+mmu00330 Arginine and proline metabolism	0.999975123113851
+mmu00310 Lysine degradation	0.999975123113851
+mmu00300 Lysine biosynthesis	NA
+mmu00290 Valine, leucine and isoleucine biosynthesis	0.999975123113851
+mmu00280 Valine, leucine and isoleucine degradation	0.999975123113851
+mmu00270 Cysteine and methionine metabolism	0.999975123113851
+mmu00260 Glycine, serine and threonine metabolism	0.999975123113851
+mmu00250 Alanine, aspartate and glutamate metabolism	0.999975123113851
+mmu00240 Pyrimidine metabolism	0.999975123113851
+mmu00232 Caffeine metabolism	NA
+mmu00230 Purine metabolism	0.999975123113851
+mmu00190 Oxidative phosphorylation	0.999975123113851
+mmu00140 Steroid hormone biosynthesis	0.800919780021494
+mmu00130 Ubiquinone and other terpenoid-quinone biosynthesis	NA
+mmu00120 Primary bile acid biosynthesis	NA
+mmu00100 Steroid biosynthesis	0.999975123113851
+mmu00072 Synthesis and degradation of ketone bodies	NA
+mmu00071 Fatty acid metabolism	0.999975123113851
+mmu00061 Fatty acid biosynthesis	NA
+mmu00053 Ascorbate and aldarate metabolism	0.999975123113851
+mmu00052 Galactose metabolism	0.999975123113851
+mmu00051 Fructose and mannose metabolism	0.999975123113851
+mmu00040 Pentose and glucuronate interconversions	0.999975123113851
+mmu00030 Pentose phosphate pathway	0.999975123113851
+mmu00020 Citrate cycle (TCA cycle)	0.999975123113851
+mmu00010 Glycolysis / Gluconeogenesis	0.999975123113851

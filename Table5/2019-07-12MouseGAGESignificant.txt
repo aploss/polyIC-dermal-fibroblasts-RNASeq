@@ -1,0 +1,4 @@
+pathway	q.val
+mmu04612 Antigen processing and presentation	0.0768156754929318
+mmu04514 Cell adhesion molecules (CAMs)	0.005223675369909
+mmu04062 Chemokine signaling pathway	0.0768156754929318
