@@ -1,0 +1,12 @@
+RNA sequencing reads were aligned to the human genome or the respective NHP species from which the samples were derived. The 
+resultant counts from either mapping method were then limited to genes with a one-to-one human ortholog (based off ENSEMBL ID) 
+across all species, resulting in ~11,000 genes (referenced as “common orthologs” in the main text). For counts mapped to the 
+NHP genomes, the human ortholog ENSEMBL ID was used for all subsequent analysis for ease of comparison. These counts were 
+normalized using DESeq2 default options and finally transformed using the regularized log2 function in DESeq2. The first two 
+components of the principal component analysis (PCA) are depicted here for either all ~11,000 genes (“common orthologs”) or 
+for a subset of these genes which overlapped with those found in the database InnateDB (“innate genes”). Each point 
+represents an individual donor and is colored by species as shown in the figure legend, with shades of blue indicating Great 
+Ape species, shades of green Old World Monkeys and purple the single New World Monkey used in this study. Circles indicate 
+mock-transfected samples and triangles poly(I:C)-transfected samples.
+
+This contains the code and output for what comprises Fig2A-D in the manuscript.
