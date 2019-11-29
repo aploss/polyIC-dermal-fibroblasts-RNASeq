@@ -1,0 +1,9 @@
+Read counts mapped to the human or species-specific genomes were limited on a species-by-species basis to the ENSEMBL IDs that 
+had a one-to-one human ortholog (referenced as “species orthologs” in the main text). The resultant genes were then analyzed 
+using Generally Applicable Gene-set Enrichment (GAGE), with the only genes excluded being those that lacked an ENTREZ ID (the 
+IDs used by GAGE) and/or had a missing padj value. A heat map is shown of pathways (the row labels) with a q value < 0.09 for 
+at least one species (the column labels), with the cells colored by –log10(q value) so that cells meeting the cutoff are 
+shades of purple and those that do not are shades of orange (white is set to the –log10(0.09). Since genes were limited on a 
+species-by-species basis to those that had a one-to-one human ortholog, each NHP species has a human profile that was limited 
+to that same gene set (the eight right most columns of each heat map). The reads were derived from the same biological samples 
+– only the downstream analysis differs in terms of the genes that were included by their ortholog status. 
